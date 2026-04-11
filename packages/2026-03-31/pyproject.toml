@@ -1,0 +1,21 @@
+[project]
+name = "2026-03-31"
+version = "0.1.0"
+description = "Anomaly Detection for Network Security using NSL-KDD dataset"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "torch",
+    "torchvision",
+    "pandas",
+    "numpy",
+    "scikit-learn",
+    "matplotlib",
+    "seaborn",
+    "jupyterlab",
+    "ipykernel",
+    "tqdm",
+    "pyyaml",
+    "jinja2",
+    "md2pdf",
+]

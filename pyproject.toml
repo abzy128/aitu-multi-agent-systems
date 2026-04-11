@@ -1,21 +1,14 @@
 [project]
 name = "aitu-multi-agent-systems"
 version = "0.1.0"
-description = "Anomaly Detection for Network Security using NSL-KDD dataset"
+description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
-dependencies = [
-    "torch",
-    "torchvision",
-    "pandas",
-    "numpy",
-    "scikit-learn",
-    "matplotlib",
-    "seaborn",
-    "jupyterlab",
-    "ipykernel",
-    "tqdm",
-    "pyyaml",
-    "jinja2",
-    "md2pdf",
-]
+requires-python = ">=3.13"
+dependencies = []
+
+[tool.uv.sources]
+2026-03-31 = { workspace = true }
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
