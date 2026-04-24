@@ -1,0 +1,32 @@
+seed: 0
+run_id: track_a
+output_dir: output
+algo: centralized
+data:
+  data_dir: dataset
+  track: univariate
+  seq_len: 60
+  horizon: 1
+  stride: 1
+  train_ratio: 0.70
+  val_ratio: 0.15
+  constant_eps: 0.001
+  batch_size: 64
+  num_workers: 0
+model:
+  hidden_size: 64
+  num_layers: 2
+  dropout: 0.2
+  use_batchnorm: false
+train:
+  epochs: 30
+  patience: 6
+  lr: 0.001
+  weight_decay: 0.00001
+  grad_clip: 1.0
+  deterministic: true
+federated:
+  n_rounds: 15
+  local_epochs: 2
+  local_lr: 0.001
+  fedprox_mu: 0.01
