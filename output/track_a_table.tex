@@ -1,0 +1,24 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{llccccc}
+\toprule
+Algorithm & Client & RMSE (MW) & MAE (MW) & $R^2$ & Rounds & Comm.\ (MB) \\
+\midrule
+Centralized & 1 & $1.081 \pm 0.052$ & $0.370 \pm 0.023$ & $0.952 \pm 0.005$ & -- & -- \\
+Centralized & 2 & $1.213 \pm 0.018$ & $0.463 \pm 0.015$ & $0.834 \pm 0.005$ & -- & -- \\
+Local only & 1 & $1.154 \pm 0.036$ & $0.429 \pm 0.040$ & $0.946 \pm 0.003$ & -- & -- \\
+Local only & 2 & $1.201 \pm 0.004$ & $0.487 \pm 0.012$ & $0.837 \pm 0.001$ & -- & -- \\
+FedAvg & 1 & $1.116 \pm 0.025$ & $0.402 \pm 0.020$ & $0.949 \pm 0.002$ & 15 & $12.12 \pm 0.00$ \\
+FedAvg & 2 & $1.321 \pm 0.034$ & $0.541 \pm 0.060$ & $0.803 \pm 0.010$ & 15 & $12.12 \pm 0.00$ \\
+FedProx & 1 & $1.123 \pm 0.018$ & $0.397 \pm 0.017$ & $0.948 \pm 0.002$ & 15 & $12.12 \pm 0.00$ \\
+FedProx & 2 & $1.197 \pm 0.017$ & $0.461 \pm 0.014$ & $0.838 \pm 0.005$ & 15 & $12.12 \pm 0.00$ \\
+SCAFFOLD & 1 & $1.617 \pm 0.029$ & $0.545 \pm 0.042$ & $0.893 \pm 0.004$ & 15 & $24.24 \pm 0.00$ \\
+SCAFFOLD & 2 & $1.518 \pm 0.046$ & $0.733 \pm 0.105$ & $0.740 \pm 0.016$ & 15 & $24.24 \pm 0.00$ \\
+FedBN & 1 & $1.250 \pm 0.125$ & $0.637 \pm 0.183$ & $0.936 \pm 0.013$ & 15 & $12.12 \pm 0.00$ \\
+FedBN & 2 & $1.430 \pm 0.253$ & $0.899 \pm 0.350$ & $0.763 \pm 0.088$ & 15 & $12.12 \pm 0.00$ \\
+\bottomrule
+\end{tabular}
+\caption{Track A univariate active-power forecasting at 15 rounds. Mean $\pm$ std over 5 seeds.}
+\label{tab:track_a_r15}
+\end{table}

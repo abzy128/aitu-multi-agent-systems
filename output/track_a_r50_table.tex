@@ -1,0 +1,20 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{llccccc}
+\toprule
+Algorithm & Client & RMSE (MW) & MAE (MW) & $R^2$ & Rounds & Comm.\ (MB) \\
+\midrule
+FedAvg & 1 & $1.152 \pm 0.073$ & $0.406 \pm 0.035$ & $0.946 \pm 0.007$ & 50 & $40.40 \pm 0.00$ \\
+FedAvg & 2 & $1.556 \pm 0.034$ & $0.537 \pm 0.013$ & $0.726 \pm 0.012$ & 50 & $40.40 \pm 0.00$ \\
+FedProx & 1 & $1.047 \pm 0.006$ & $0.358 \pm 0.014$ & $0.955 \pm 0.000$ & 50 & $40.40 \pm 0.00$ \\
+FedProx & 2 & $1.371 \pm 0.024$ & $0.524 \pm 0.013$ & $0.788 \pm 0.007$ & 50 & $40.40 \pm 0.00$ \\
+SCAFFOLD & 1 & $1.308 \pm 0.022$ & $0.458 \pm 0.036$ & $0.930 \pm 0.002$ & 50 & $80.80 \pm 0.00$ \\
+SCAFFOLD & 2 & $1.321 \pm 0.012$ & $0.528 \pm 0.036$ & $0.803 \pm 0.004$ & 50 & $80.80 \pm 0.00$ \\
+FedBN & 1 & $2.396 \pm 0.899$ & $2.195 \pm 0.987$ & $0.739 \pm 0.179$ & 50 & $40.40 \pm 0.00$ \\
+FedBN & 2 & $3.962 \pm 1.197$ & $3.807 \pm 1.228$ & $-0.901 \pm 1.128$ & 50 & $40.40 \pm 0.00$ \\
+\bottomrule
+\end{tabular}
+\caption{Track A univariate active-power forecasting at 50 rounds (FL only). Mean $\pm$ std over 5 seeds.}
+\label{tab:track_a_r50}
+\end{table}

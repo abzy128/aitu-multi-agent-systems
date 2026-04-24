@@ -10,6 +10,11 @@
 - Communication accounting for federated runs.
 - Per-client metrics and prediction CSV export.
 - Aggregate metric collection script.
+- LaTeX table rendering from summary-stats CSVs
+  (`src/fl_saf/evaluation/latex_table.py`).
+- Plot rendering for validation loss by round, test prediction overlays,
+  and communication-cost vs. RMSE Pareto
+  (`src/fl_saf/evaluation/plots.py`, outputs under `output/figures/`).
 
 ## Current Outputs
 
@@ -112,12 +117,6 @@ commit.
 
 ## Next Work
 
-- Add a script that converts `output/track_a_*_summary.csv` into a LaTeX table.
-- Add plotting scripts for:
-  - validation loss by round/epoch,
-  - test prediction overlays,
-  - communication-cost vs. RMSE Pareto points.
-- Implement Track B multivariate/personalization only after Track A results are
-  stable.
+- Run Track B (multivariate + personalization). Planned for 2026-04-26.
 - Add tests for data windowing, metric inversion, communication accounting, and
   FedBN parameter exclusion.
