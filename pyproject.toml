@@ -1,15 +1,13 @@
 [project]
-name = "aitu-multi-agent-systems"
+name = "federated-learning"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
-
-[tool.uv.sources]
-2026-03-31 = { workspace = true }
-federated-learning = { workspace = true }
-
-[tool.uv.workspace]
-members = ["packages/*"]
-
+dependencies = [
+    "pandas>=2.2",
+    "numpy>=2.0",
+    "matplotlib>=3.9",
+    "seaborn>=0.13",
+    "scikit-learn>=1.5",
+]

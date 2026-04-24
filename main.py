@@ -1,5 +1,5 @@
 def main():
-    print("Hello from aitu-multi-agent-systems!")
+    print("Hello from federated-learning!")
 
 
 if __name__ == "__main__":
