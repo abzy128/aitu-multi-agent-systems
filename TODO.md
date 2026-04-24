@@ -35,8 +35,15 @@ Each run contains:
 
 The combined metrics tables are:
 
-- `output/track_a_summary.csv` - one row per algorithm/client/seed.
-- `output/track_a_summary_stats.csv` - mean/std per algorithm/client.
+- `output/track_a_summary.csv` - one row per algorithm/client/seed at
+  `n_rounds=15` (plus the centralized/local-only runs that don't
+  depend on rounds).
+- `output/track_a_summary_stats.csv` - mean/std per algorithm/client at
+  `n_rounds=15`.
+- `output/track_a_r50_summary.csv` / `output/track_a_r50_summary_stats.csv`
+  - 50-round variant (FL algorithms only; run IDs
+  `track_a_r50_seed<seed>_<algo>`). Configured via
+  `configs/track_a_r50.yaml`.
 
 Generated output directories are ignored by git. Keep the CSVs/checkpoints on
 disk for analysis, or force-add selected artifacts later if the paper workflow
@@ -74,10 +81,36 @@ commit.
   regime. `federated.scaffold_lr` and `federated.scaffold_momentum` are
   now configurable.
 
+- **Ran the 15-rounds → 50-rounds ablation.** FedProx client_1 improves
+  to 1.047 ± 0.006 (now beats the centralized baseline at 1.081) and
+  SCAFFOLD improves on both clients (1.617 → 1.308, 1.518 → 1.321),
+  consistent with control-variate and proximal-term methods needing
+  more rounds to stabilize. FedAvg mildly degrades on client_2
+  (1.321 → 1.556). FedBN diverges (RMSE 3.054 / 5.028), but this is not
+  a rounds problem — it exposed a latent implementation bug (see below).
+  The paper should report 50 rounds for FedProx and SCAFFOLD, and either
+  15 rounds for FedAvg or explicitly show the round-dependence as a
+  robustness finding.
+
+## Known Issues
+
+- **FedBN implementation does not match the paper.** `train_fedbn`
+  returns a single `global_model` whose BN-layer entries come from
+  `states[0]` (client_1's latest local BN) because of the
+  `weighted_average(..., exclude_bn=True)` shortcut. Both clients are
+  then evaluated on one model carrying one client's BN stats — which
+  erases the whole point of FedBN. Symptom: stable at 15 rounds
+  (1.259 / 1.457) but catastrophically divergent at 50 rounds
+  (3.054 / 5.028). Proper fix: persist per-client BN state across
+  rounds, aggregate only non-BN params, and return a dict
+  `{client_id: model}` so the existing run-time per-client evaluation
+  path is used. The current Track A FedBN numbers (both 15-round and
+  50-round) should be regenerated after the fix.
+
 ## Next Work
 
-- Increase FL runs from the current practical `15` rounds to the guide default
-  of `50` rounds, or justify the smaller value in the paper.
+- Fix FedBN to match the paper (see Known Issues) and regenerate both
+  the 15-round and 50-round FedBN rows of the summary tables.
 - Add a script that converts `output/track_a_*_summary.csv` into a LaTeX table.
 - Add plotting scripts for:
   - validation loss by round/epoch,
