@@ -13,14 +13,15 @@
 
 ## Current Outputs
 
-Track A seed-0 runs were executed and saved under `output/`:
+Track A seed-0, seed-1, and seed-2 runs were executed and saved under
+`output/` using run IDs of the form:
 
-- `output/track_a_seed0_centralized/`
-- `output/track_a_seed0_local_only/`
-- `output/track_a_seed0_fedavg/`
-- `output/track_a_seed0_fedprox/`
-- `output/track_a_seed0_scaffold/`
-- `output/track_a_seed0_fedbn/`
+- `output/track_a_seed<seed>_centralized/`
+- `output/track_a_seed<seed>_local_only/`
+- `output/track_a_seed<seed>_fedavg/`
+- `output/track_a_seed<seed>_fedprox/`
+- `output/track_a_seed<seed>_scaffold/`
+- `output/track_a_seed<seed>_fedbn/`
 
 Each run contains:
 
@@ -32,17 +33,19 @@ Each run contains:
 - `predictions/client_1_test_predictions.csv`
 - `predictions/client_2_test_predictions.csv`
 
-The combined metrics table is:
+The combined metrics tables are:
 
-- `output/track_a_seed0_summary.csv`
+- `output/track_a_summary.csv` - one row per algorithm/client/seed.
+- `output/track_a_summary_stats.csv` - mean/std per algorithm/client.
 
-Generated output directories are ignored by git. Keep the CSVs/checkpoints on disk
-for analysis, or force-add selected artifacts later if the paper workflow needs
-committed reproducibility outputs.
+Generated output directories are ignored by git. Keep the CSVs/checkpoints on
+disk for analysis, or force-add selected artifacts later if the paper workflow
+needs committed reproducibility outputs. The summary CSVs are small enough to
+commit.
 
 ## Next Work
 
-- Run paper-quality Track A experiments over 3-5 seeds.
+- Decide whether 3 seeds is enough or extend Track A to seeds 3-4.
 - Increase FL runs from the current practical `15` rounds to the guide default
   of `50` rounds, or justify the smaller value in the paper.
 - Debug/tune SCAFFOLD. Current seed-0 results are unstable and much worse than
