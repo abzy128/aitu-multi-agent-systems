@@ -43,9 +43,25 @@ disk for analysis, or force-add selected artifacts later if the paper workflow
 needs committed reproducibility outputs. The summary CSVs are small enough to
 commit.
 
+## Decisions
+
+- **Extend Track A to 5 seeds (add seeds 3 and 4).** At 3 seeds, FedAvg,
+  FedProx, centralized, and local-only baselines are already stable (RMSE
+  coefficient of variation < 3% in most cells), but FedBN's client-2 RMSE
+  spreads across 1.212 / 1.230 / 1.506 (CV ~12.5%) and its client-1 CV is
+  ~7.8%. Since the guide frames FedBN as the most directly motivated
+  algorithm for this dataset's calibration heterogeneity, the paper's
+  headline claim about it is under-powered at n=3 and needs tighter
+  confidence intervals. FedAvg/FedProx/centralized/local_only benefit
+  "for free" from the same reruns. SCAFFOLD should be debugged before
+  spending additional seeds on it — its current divergence is not a
+  variance problem.
+
 ## Next Work
 
-- Decide whether 3 seeds is enough or extend Track A to seeds 3-4.
+- Run Track A seeds 3 and 4 for all algorithms (or skip SCAFFOLD until
+  the divergence is fixed). Regenerate `track_a_summary.csv` and
+  `track_a_summary_stats.csv` with n_seeds=5.
 - Increase FL runs from the current practical `15` rounds to the guide default
   of `50` rounds, or justify the smaller value in the paper.
 - Debug/tune SCAFFOLD. Current seed-0 results are unstable and much worse than
