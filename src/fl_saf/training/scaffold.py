@@ -39,9 +39,10 @@ def train_scaffold(clients, cfg, dev, model_factory):
         for client in clients:
             local_model = model_factory().to(dev)
             local_model.load_state_dict(global_state)
-            optimizer = torch.optim.Adam(
+            optimizer = torch.optim.SGD(
                 local_model.parameters(),
-                lr=cfg.federated.local_lr,
+                lr=cfg.federated.scaffold_lr,
+                momentum=cfg.federated.scaffold_momentum,
                 weight_decay=cfg.train.weight_decay,
             )
             steps = 0
@@ -61,7 +62,7 @@ def train_scaffold(clients, cfg, dev, model_factory):
             local_float = _float_param_state(local_model)
             new_client_c = {}
             delta_c = {}
-            scale = 1.0 / max(1, steps) / cfg.federated.local_lr
+            scale = 1.0 / max(1, steps) / cfg.federated.scaffold_lr
             for name in server_c:
                 updated = client_c[client.client_id][name] - server_c[name] + (
                     global_float[name].to(dev) - local_float[name].to(dev)

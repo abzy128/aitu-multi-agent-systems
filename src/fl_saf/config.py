@@ -48,6 +48,8 @@ class FederatedConfig:
     local_epochs: int = 2
     local_lr: float = 1e-3
     fedprox_mu: float = 0.01
+    scaffold_lr: float = 1e-2
+    scaffold_momentum: float = 0.9
 
 
 @dataclass(slots=True)
