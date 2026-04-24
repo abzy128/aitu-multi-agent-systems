@@ -92,25 +92,26 @@ commit.
   15 rounds for FedAvg or explicitly show the round-dependence as a
   robustness finding.
 
-## Known Issues
-
-- **FedBN implementation does not match the paper.** `train_fedbn`
-  returns a single `global_model` whose BN-layer entries come from
-  `states[0]` (client_1's latest local BN) because of the
-  `weighted_average(..., exclude_bn=True)` shortcut. Both clients are
-  then evaluated on one model carrying one client's BN stats — which
-  erases the whole point of FedBN. Symptom: stable at 15 rounds
-  (1.259 / 1.457) but catastrophically divergent at 50 rounds
-  (3.054 / 5.028). Proper fix: persist per-client BN state across
-  rounds, aggregate only non-BN params, and return a dict
-  `{client_id: model}` so the existing run-time per-client evaluation
-  path is used. The current Track A FedBN numbers (both 15-round and
-  50-round) should be regenerated after the fix.
+- **Fixed FedBN to match the paper.** The old `train_fedbn` aliased to
+  `train_fedavg(..., exclude_bn=True)`, which returned a single
+  `global_model` whose BN-layer entries were cloned from `states[0]`
+  (client_1's latest local BN) — so both clients were evaluated on one
+  model with one client's BN stats. The new implementation persists a
+  per-client `LSTMRegressor` across rounds, trains each locally (BN
+  stats update locally), aggregates only non-BN weights, and returns a
+  `{client_id: model}` dict. `federated.py`'s evaluation and the
+  existing `run.py` prediction/checkpoint paths already handle dict
+  models. At 15 rounds the fix doesn't move FedBN much
+  (client_2 RMSE 1.430 ± 0.253 vs buggy 1.457 ± 0.241) because the
+  buggy version happened to be "close enough" with little BN drift.
+  At 50 rounds, correct FedBN still diverges
+  (client_1 2.396 ± 0.899, client_2 3.962 ± 1.197): the aggregated
+  non-BN weights pull each client away from its BN-normalized optimum,
+  and with only 2 heavy non-IID clients the gap widens every round.
+  This is a genuine FedBN limitation in this setup, not an artifact.
 
 ## Next Work
 
-- Fix FedBN to match the paper (see Known Issues) and regenerate both
-  the 15-round and 50-round FedBN rows of the summary tables.
 - Add a script that converts `output/track_a_*_summary.csv` into a LaTeX table.
 - Add plotting scripts for:
   - validation loss by round/epoch,

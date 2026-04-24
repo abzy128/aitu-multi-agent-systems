@@ -26,7 +26,8 @@ def train_federated(clients, cfg, dev: torch.device):
     rows = []
     total_mb = (round_bytes * cfg.federated.n_rounds) / 1_000_000
     for client in clients:
-        metrics, _, _ = evaluate_client(model, client, "test", cfg.data.batch_size, dev)
+        eval_model = model[client.client_id] if isinstance(model, dict) else model
+        metrics, _, _ = evaluate_client(eval_model, client, "test", cfg.data.batch_size, dev)
         rows.append(
             {
                 "algorithm": cfg.algo,
