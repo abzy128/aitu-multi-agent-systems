@@ -93,7 +93,13 @@ def plot_predictions(root: Path, prefix: str, out: Path, window: int, seed: int)
             ax.tick_params(labelsize=8)
     axes[-1, 0].set_xlabel("Test-window minute")
     axes[-1, 1].set_xlabel("Test-window minute")
-    axes[0, 1].legend(loc="upper right", fontsize=8, frameon=False)
+    handles, labels = [], []
+    for ax in axes.ravel():
+        handles, labels = ax.get_legend_handles_labels()
+        if handles:
+            break
+    if handles:
+        axes[0, 1].legend(handles, labels, loc="upper right", fontsize=8, frameon=False)
     fig.suptitle(f"Test-set predictions, first {window} min (seed {seed}, {prefix})", y=1.0)
     fig.tight_layout()
     fig.savefig(out, dpi=150)

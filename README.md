@@ -62,6 +62,13 @@ uv run python -m fl_saf.evaluation.latex_table --stats output/track_a_summary_st
 uv run python -m fl_saf.evaluation.plots --root output --prefix track_a_seed --summary output/track_a_summary.csv --out-dir output/figures
 ```
 
+Build paper-facing Track A files:
+
+```bash
+uv run python -m fl_saf.evaluation.paper_summary --track-a output/track_a_summary_stats.csv --r50 output/track_a_r50_summary_stats.csv --out-dir output/research
+uv run python -m fl_saf.evaluation.latex_table --stats output/research/track_a_recommended_summary_stats.csv --out output/research/track_a_recommended_table.tex
+```
+
 See [TODO.md](TODO.md) for the current result inventory and experiment
 decisions. See [docs/guide.md](docs/guide.md) for the implementation and paper
 protocol.

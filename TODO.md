@@ -15,6 +15,9 @@
 - Plot rendering for validation loss by round, test prediction overlays,
   and communication-cost vs. RMSE Pareto
   (`src/fl_saf/evaluation/plots.py`, outputs under `output/figures/`).
+- Paper-facing Track A result packaging
+  (`src/fl_saf/evaluation/paper_summary.py`, outputs under
+  `output/research/`).
 - Focused pytest coverage for data windowing, chronological splits,
   train-only scaling, metric inversion, communication accounting, and FedBN
   BatchNorm exclusion (`tests/`).
@@ -53,6 +56,13 @@ The combined metrics tables are:
   - 50-round variant (FL algorithms only; run IDs
   `track_a_r50_seed<seed>_<algo>`). Configured via
   `configs/track_a_r50.yaml`.
+- `output/research/track_a_research_summary.md` - paper-facing summary of
+  recommended Track A claims and round-ablation interpretation.
+- `output/research/track_a_recommended_summary_stats.csv` and
+  `output/research/track_a_recommended_table.tex` - selected rows for the
+  paper main table.
+- `output/research/track_a_round_ablation_summary_stats.csv` - combined 15-
+  and 50-round FL ablation rows.
 
 Generated output directories are ignored by git. Keep the CSVs/checkpoints on
 disk for analysis, or force-add selected artifacts later if the paper workflow

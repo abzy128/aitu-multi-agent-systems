@@ -328,6 +328,9 @@ Every cell is mean ± std over 3–5 seeds.
 - Log to per-run CSVs for programmatic analysis. TensorBoard / Weights & Biases can be added later for inspection, but never rely on stdout alone.
 - Pin every dependency in `pyproject.toml`; `uv.lock` is the source of truth.
 - Run `uv run pytest` before publishing code changes. The suite covers split/window invariants, train-only scaler fitting, inverse-transformed metrics, communication byte accounting, FedBN BatchNorm exclusion, and CLI smoke runs for centralized and FedAvg training on synthetic CSVs.
+- Use `uv run python -m fl_saf.evaluation.paper_summary` after refreshing the
+  aggregate CSVs to produce the paper-facing Track A recommendation table,
+  round-ablation CSV, and Markdown interpretation under `output/research/`.
 
 ---
 
