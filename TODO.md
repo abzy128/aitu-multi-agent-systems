@@ -15,6 +15,10 @@
 - Plot rendering for validation loss by round, test prediction overlays,
   and communication-cost vs. RMSE Pareto
   (`src/fl_saf/evaluation/plots.py`, outputs under `output/figures/`).
+- Focused pytest coverage for data windowing, chronological splits,
+  train-only scaling, metric inversion, communication accounting, and FedBN
+  BatchNorm exclusion (`tests/`).
+- CLI smoke integration tests for centralized and FedAvg runs on synthetic CSVs.
 
 ## Current Outputs
 
@@ -117,6 +121,7 @@ commit.
 
 ## Next Work
 
-- Run Track B (multivariate + personalization). Planned for 2026-04-26.
-- Add tests for data windowing, metric inversion, communication accounting, and
-  FedBN parameter exclusion.
+- Run Track B (multivariate + personalization). The planned 2026-04-26 date is
+  now historical; schedule the next run window before starting new long jobs.
+- Extend CLI smoke coverage to FedProx, SCAFFOLD, and FedBN after deciding how
+  much runtime is acceptable in the default test suite.

@@ -255,15 +255,15 @@ Each strategy (`FedAvg`, `FedProx`, `SCAFFOLD`, `FedBN`) is a class with `prepar
 
 **FedProx** (Li et al., MLSys 2020). Adds a proximal term `(μ/2) * ||w - w_global||²` to each client's local loss. Ablate `μ ∈ {0.001, 0.01, 0.1, 1.0}`. Literature review flag: with small `μ`, FedProx tracks FedAvg closely — expect modest gains.
 
-**SCAFFOLD** (Karimireddy et al., ICML 2020). Maintains client and server control variates to correct client drift. Per-client state `c_i` must persist between rounds — store on the client object, not the server. Update rule for local step: `w ← w − η·(∇f_i(w) − c_i + c)`. The literature review (Prathusha & Aparna 2025) cites SCAFFOLD as the most accurate on HAR-style data but also the most communication-heavy per round (~2× FedAvg because control variates are transmitted alongside weights); log this honestly in the comms table.
+**SCAFFOLD** (Karimireddy et al., ICML 2020). Maintains client and server control variates to correct client drift. Per-client state `c_i` must persist between rounds — store on the client object, not the server. Update rule for local step: `w ← w − η·(∇f_i(w) − c_i + c)`. The local optimizer must be SGD-family, not Adam, because the Option-II control-variate update estimates the mean gradient from the actual SGD displacement. In this codebase, SCAFFOLD uses configurable `federated.scaffold_lr` and `federated.scaffold_momentum`. The literature review (Prathusha & Aparna 2025) cites SCAFFOLD as the most accurate on HAR-style data but also the most communication-heavy per round (~2× FedAvg because control variates are transmitted alongside weights); log this honestly in the comms table.
 
-**FedBN** (Li et al., ICLR 2021). Average all parameters **except** BatchNorm layers; keep BN stats per client. Requires the LSTM variant with `use_batchnorm=True`. Exclude BN `weight`, `bias`, `running_mean`, `running_var` from the aggregation set. This is the most directly motivated algorithm for this dataset given the calibration heterogeneity on Furnace 2.
+**FedBN** (Li et al., ICLR 2021). Average all parameters **except** BatchNorm layers; keep BN stats per client. Requires the LSTM variant with `use_batchnorm=True`. Exclude BN `weight`, `bias`, `running_mean`, `running_var`, and `num_batches_tracked` from the aggregation set. The implementation must persist one model per client across rounds, aggregate only non-BN state, then load the shared non-BN state back into each client model with its local BN state intact. This is the most directly motivated algorithm for this dataset given the calibration heterogeneity on Furnace 2, but the current Track A result shows an important limitation: with only two heavily non-IID clients, FedBN can diverge as rounds increase because shared non-BN weights drift away from each client's BN-normalized optimum.
 
 ### 7.3 FL hyperparameters
 
 Start with:
 
-- `n_rounds`: 50 (enough for FedAvg to plateau on simple tasks per literature; extend to 100 if still improving).
+- `n_rounds`: 15 for the first Track A comparison and 50 for the main FedProx/SCAFFOLD ablation. The observed Track A behaviour is round-sensitive: FedProx and SCAFFOLD improve at 50 rounds, FedAvg mildly degrades on client 2, and FedBN diverges.
 - `local_epochs`: 2 (small; more local work amplifies client drift under non-IID).
 - `local_lr`: 1e-3.
 - `batch_size`: 64.
@@ -323,10 +323,11 @@ Every cell is mean ± std over 3–5 seeds.
 ## 9. Configuration and reproducibility
 
 - One `ExperimentConfig` dataclass drives everything. Dump it to YAML at run start and load it back at analysis time.
-- CLI: `python -m fl_saf.experiments.run --algo fedbn --config configs/fedbn_default.yaml --seed 0`.
+- CLI: `uv run fl-saf --algo fedbn --config configs/track_a_run.yaml --seed 0 --run-id track_a_seed0_fedbn`.
 - Deterministic mode: `torch.use_deterministic_algorithms(True)` plus `CUBLAS_WORKSPACE_CONFIG=:4096:8`; accept the small speed cost.
-- Log to both a per-run CSV (for programmatic analysis) and TensorBoard / Weights & Biases (for inspection). Never rely on stdout alone.
+- Log to per-run CSVs for programmatic analysis. TensorBoard / Weights & Biases can be added later for inspection, but never rely on stdout alone.
 - Pin every dependency in `pyproject.toml`; `uv.lock` is the source of truth.
+- Run `uv run pytest` before publishing code changes. The suite covers split/window invariants, train-only scaler fitting, inverse-transformed metrics, communication byte accounting, FedBN BatchNorm exclusion, and CLI smoke runs for centralized and FedAvg training on synthetic CSVs.
 
 ---
 
