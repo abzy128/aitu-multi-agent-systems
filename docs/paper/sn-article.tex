@@ -27,6 +27,7 @@
 \usepackage{algorithmicx}%
 \usepackage{algpseudocode}%
 \usepackage{listings}%
+\usepackage{float}%
 
 \graphicspath{{output/figures/}{../../output/figures/}}
 
@@ -60,15 +61,39 @@
 
 \section{Introduction}\label{sec:introduction}
 
+\subsection{Problem statement and proposed solution}\label{sec:problem}
+
 Submerged arc furnaces (SAFs) are energy-intensive industrial assets whose operation is reflected in continuous electrical, electromechanical, thermal, and cooling-system measurements. Active power is one of the central variables in this setting because it summarizes the furnace load and is directly connected to energy consumption, operating stability, and electrode-control decisions. A short-horizon active-power forecast can therefore support process monitoring and give operators an early signal when the furnace trajectory departs from expected behavior.
 
 The practical obstacle is not only modelling accuracy. Industrial furnace data is sensitive: raw time-series logs can reveal production schedules, product mix, operating regimes, and maintenance events. Moving all logs into one central data lake may be unacceptable even inside one organization, and it becomes harder when equipment is distributed across facilities, vendors, or business units. The research problem addressed in this paper is therefore: \emph{how can multiple SAF clients train a useful active-power forecasting model while keeping raw operational data local?}
 
 Federated learning (FL) is a natural candidate solution. In FL, each client trains on local data and sends model parameters or updates to an aggregator instead of transmitting raw measurements~\cite{mcmahan2017fedavg}. The approach is attractive for industrial time series, but it is not automatically reliable. SAF clients are non-IID: they differ in operating regime, sensor calibration, feature availability, and noise. Heterogeneity is a known challenge for FL in IoT and wireless sensor systems~\cite{mengistu2024heterogeneity}; it is also an active topic in recent time-series FL work~\cite{fedst2024,chen2025fedal}. Methods such as FedProx~\cite{li2020fedprox}, SCAFFOLD~\cite{karimireddy2020scaffold}, and FedBN~\cite{li2021fedbn} were proposed to reduce different forms of client drift or feature shift, but their behavior must be tested in the target process domain.
 
+\subsection{Existing products and research gap}\label{sec:existing-solutions}
+
 Existing industrial products already provide valuable predictive maintenance and digital operations capabilities. Aspen Mtell advertises prescriptive and predictive maintenance, asset templates, and integration with enterprise asset-management workflows~\cite{aspentech2026mtell}. Siemens Xcelerator presents an integrated portfolio of industrial software, IoT-enabled hardware, and digital services for digital transformation~\cite{siemens2026xcelerator}. Honeywell Forge is described as an industrial IoT platform with AI-enabled applications for operational productivity, safety, and security~\cite{honeywell2026forge}. These systems show that industrial AI is commercially mature, but they do not fill the research gap studied here: a transparent, reproducible evaluation of federated LSTM forecasting for SAF active power under client-local data constraints and explicit communication accounting.
 
 Recent academic work is closer to the present study but still leaves the SAF setting open. Federated learning has been studied for predictive maintenance and quality inspection~\cite{pruckovskaja2023industrialfl}, remaining useful life estimation~\cite{kamei2023rul}, and heterogeneous industrial health prognostics~\cite{arunan2024matched}. These works motivate privacy-preserving collaborative learning for industrial time series, but they generally focus on benchmark prognostics, quality inspection, or health monitoring rather than SAF power forecasting. This paper contributes a small but complete SAF case study with real experimental outputs: centralized and local-only baselines, four FL algorithms, five seeds, communication costs, summary CSVs, and plots.
+
+Table~\ref{tab:solution-comparison} summarizes the gap. Commercial platforms emphasize deployment workflows and asset-management integration, while recent academic studies emphasize general industrial FL or prognostics. The present work is narrower but more directly reproducible for the target process: it evaluates several FL algorithms on SAF active-power forecasting and reports both per-client accuracy and communication cost.
+
+\begin{table}[t]
+\centering
+\footnotesize
+\begin{tabular}{llll}
+\toprule
+Solution or literature & Main focus & Limitation & Gap addressed here \\
+\midrule
+Aspen Mtell & Maintenance product & No SAF FL benchmark & Reproducible FL metrics \\
+Siemens Xcelerator & Industrial platform & Broad digital portfolio & Focused furnace study \\
+Honeywell Forge & Industrial IoT/AI & Product capabilities & Algorithm comparison \\
+Industrial FL studies & Prognostics/inspection & Adjacent tasks & SAF power forecasting \\
+This work & Federated SAF LSTM & Track A only & Baseline for Track B \\
+\bottomrule
+\end{tabular}
+\caption{Comparison of existing industrial AI solutions and recent FL literature with the gap addressed by this study. The products and studies are discussed in the text with citations.}
+\label{tab:solution-comparison}
+\end{table}
 
 \section{Methodology}\label{sec:methodology}
 
@@ -91,7 +116,21 @@ Each furnace is one FL client. For FedAvg, a server broadcasts global weights $w
 \end{equation}
 where $K=2$, $n_k$ is the number of local training windows at client $k$, and $n=\sum_k n_k$.
 
-FedProx adds a proximal term to local training to reduce drift from the broadcast model~\cite{li2020fedprox}. SCAFFOLD uses server and client control variates to correct client drift~\cite{karimireddy2020scaffold}. In this implementation, SCAFFOLD local training uses SGD with momentum because the control-variate update assumes SGD-like parameter displacement. FedBN keeps batch-normalization statistics local while aggregating non-BatchNorm parameters~\cite{li2021fedbn}. Communication cost is counted as transmitted model-state bytes across all rounds; SCAFFOLD includes the additional control-variate traffic.
+The client-side training loop is identical in structure across FedAvg, FedProx, and FedBN. At the start of round $t$, every client receives the same global non-personalized weights. Each client then iterates over its local mini-batches, computes the standardized-space MSE loss, clips gradients, and updates local parameters. After local training, the client sends its updated state dictionary to the server. The server performs deterministic weighted averaging using the number of local training windows as the weight. Because both furnaces participate in every round, there is no client-sampling variance in these experiments; the observed variability comes from random initialization and stochastic optimization.
+
+FedProx modifies the local objective rather than the aggregation rule. For client $k$, the local loss is
+\begin{equation}
+    \mathcal{L}^{\mathrm{prox}}_k(w)
+    = \mathcal{L}_k(w) + \frac{\mu}{2}\lVert w - w^t\rVert_2^2 ,
+    \label{eq:fedprox}
+\end{equation}
+where $w^t$ is the broadcast global model and $\mu$ controls the strength of the proximal penalty~\cite{li2020fedprox}. This term discourages a local model from moving too far toward a client-specific optimum in one round, which is useful when the furnaces have different active-power distributions.
+
+SCAFFOLD adds control variates to reduce client drift~\cite{karimireddy2020scaffold}. The server maintains a control variate $c$, and each client keeps its own $c_k$. During local optimization, the raw gradient is corrected by the difference between server and client control variates. In this implementation, SCAFFOLD uses SGD with momentum because the standard control-variate update estimates the average local gradient from SGD-like parameter displacement. SCAFFOLD also has a communication cost consequence: each round transmits both model parameters and control-variate information, which approximately doubles the byte count relative to FedAvg for the same model size.
+
+FedBN changes which parameters are aggregated~\cite{li2021fedbn}. The LSTM model is equipped with a BatchNorm layer after the recurrent representation. Non-BatchNorm parameters are averaged globally, but BatchNorm affine parameters and running statistics remain local to each furnace. This design tests whether client-local normalization can absorb furnace-specific scale or feature-shift effects. The final evaluation uses the client-specific model state for each furnace.
+
+Communication cost is computed from tensor sizes rather than from wall-clock network traces. For FedAvg, FedProx, and FedBN, each round counts one server-to-client model download and one client-to-server upload for each participating furnace, excluding local-only BatchNorm state for FedBN. For SCAFFOLD, the same accounting is extended to include control-variate traffic. This yields directly comparable communication totals in megabytes.
 
 \section{Results}\label{sec:results}
 
@@ -127,7 +166,7 @@ FedProx is the strongest federated method on Furnace 1: its 50-round RMSE is $1.
 
 Figure~\ref{fig:pareto} visualizes the communication--accuracy trade-off for the 50-round federated ablation. FedProx has lower communication cost than SCAFFOLD because it transmits only model weights. SCAFFOLD improves from its unstable 15-round behavior but pays approximately twice the communication cost due to control-variate traffic. FedBN is the clearest negative result at 50 rounds: despite its motivation for feature shift, the aggregated non-BatchNorm weights drift away from both clients' useful optima.
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=0.92\textwidth]{track_a_r50_seed_pareto.png}
 \caption{Communication cost versus test RMSE for the 50-round federated ablation. Each point corresponds to an algorithm/seed result.}
@@ -136,7 +175,7 @@ Figure~\ref{fig:pareto} visualizes the communication--accuracy trade-off for the
 
 Figure~\ref{fig:prediction-example} gives a time-series view of the seed-0 test predictions. The plot is useful because RMSE alone hides whether a model follows the shape of the load curve or merely predicts the average level. The qualitative pattern matches the table: the best methods track the major active-power variation, while weaker federated variants lag or smooth the client-specific trajectory.
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[width=0.98\textwidth]{track_a_seed_predictions_seed0.png}
 \caption{Representative test-set active-power prediction overlays for seed 0. The panels compare ground truth and model forecasts over the first part of the held-out test window for each client.}
