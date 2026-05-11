@@ -28,6 +28,8 @@
 \usepackage{algpseudocode}%
 \usepackage{listings}%
 \usepackage{float}%
+\usepackage{tikz}%
+\usetikzlibrary{arrows.meta,positioning,fit}
 
 \graphicspath{{output/figures/}{../../output/figures/}}
 
@@ -105,7 +107,47 @@ Each client is split chronologically into training, validation, and test windows
 
 \subsection{Model and Baselines}\label{sec:lstm-architecture}
 
-The forecasting model is a compact LSTM regressor. The network uses a two-layer LSTM with 64 hidden units and dropout, followed by a linear output head for one-step regression. The training loss is mean squared error in standardized space. The centralized baseline trains one model on pooled client windows while preserving client-local scaling. The local-only baseline trains one separate model per furnace. These two baselines are necessary because they answer different questions: centralized training estimates the best result if raw data movement were allowed, while local-only training estimates whether collaboration helps a client at all.
+The forecasting model is a compact LSTM regressor designed to keep the federated communication payload small. Each input sample is a sequence
+$X_i \in \mathbb{R}^{60 \times 1}$ containing the previous 60 standardized active-power observations for one furnace. The target is the next active-power value $y_i \in \mathbb{R}$. Since Track A is univariate, the input dimension is one; the same implementation can be extended to Track B by replacing this input dimension with the number of retained shared features.
+
+The model has two recurrent layers with 64 hidden units each. The LSTM returns a hidden representation for every time step, but only the final hidden state is used for prediction. Dropout is applied between stacked recurrent layers, and a linear regression head maps the final hidden state to the one-step forecast. For FedBN, a BatchNorm layer is inserted between the recurrent representation and the linear head; for the other algorithms this layer is an identity mapping. Figure~\ref{fig:model-architecture} summarizes the architecture.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    scale=0.62,
+    transform shape,
+    node distance=0.55cm,
+    block/.style={draw, rounded corners, align=center, minimum height=0.8cm, minimum width=2.25cm, fill=blue!7},
+    optblock/.style={draw, rounded corners, align=center, minimum height=0.8cm, minimum width=2.25cm, fill=green!8},
+    arrow/.style={-{Latex[length=2mm]}, thick}
+]
+\node[block] (input) {Input window\\$60 \times 1$};
+\node[block, right=of input] (lstm1) {LSTM layer 1\\64 hidden units};
+\node[block, right=of lstm1] (lstm2) {LSTM layer 2\\64 hidden units};
+\node[block, right=of lstm2] (last) {Last hidden state\\$h_{60}$};
+\node[optblock, right=of last] (bn) {BatchNorm\\FedBN only};
+\node[block, right=of bn] (head) {Linear head\\1 output};
+\node[block, right=of head] (pred) {Forecast\\$\hat{y}_{t+1}$};
+\draw[arrow] (input) -- (lstm1);
+\draw[arrow] (lstm1) -- (lstm2);
+\draw[arrow] (lstm2) -- (last);
+\draw[arrow] (last) -- (bn);
+\draw[arrow] (bn) -- (head);
+\draw[arrow] (head) -- (pred);
+\end{tikzpicture}
+\caption{LSTM forecasting architecture used by centralized, local-only, and federated experiments. The BatchNorm block is active only for FedBN; otherwise it is replaced by an identity operation.}
+\label{fig:model-architecture}
+\end{figure}
+
+The training loss is mean squared error in standardized space:
+\begin{equation}
+    \mathcal{L}(w) = \frac{1}{m}\sum_{i=1}^{m}\left(f_w(X_i)-y_i\right)^2 ,
+    \label{eq:mse}
+\end{equation}
+where $f_w$ is the LSTM regressor and $m$ is the number of mini-batch samples. Reported metrics are computed after inverse-transforming predictions and targets to megawatts.
+
+The centralized baseline trains one model on pooled client windows while preserving client-local scaling. The local-only baseline trains one separate model per furnace. These two baselines are necessary because they answer different questions: centralized training estimates the best result if raw data movement were allowed, while local-only training estimates whether collaboration helps a client at all. Federated training is useful only if it is competitive with both baselines or if the privacy benefit justifies a measured accuracy gap.
 
 \subsection{Federated Training}\label{sec:fl-setup}
 
@@ -116,7 +158,60 @@ Each furnace is one FL client. For FedAvg, a server broadcasts global weights $w
 \end{equation}
 where $K=2$, $n_k$ is the number of local training windows at client $k$, and $n=\sum_k n_k$.
 
+The physical interpretation of the setup is shown in Figure~\ref{fig:federated-setup}. Furnace 1 and Furnace 2 each keep their chronological train/validation/test windows, scaler parameters, and local loaders. The server never receives raw active-power sequences. It receives only model state updates and writes the aggregated global state for the next communication round. The same orchestration code is used for every FL variant; the variant-specific behavior is localized to the local objective, the transmitted state, or the aggregation mask.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    scale=0.88,
+    transform shape,
+    node distance=1.0cm and 1.6cm,
+    client/.style={draw, rounded corners, align=center, minimum width=3.3cm, minimum height=1.25cm, fill=orange!10},
+    server/.style={draw, rounded corners, align=center, minimum width=3.4cm, minimum height=1.25cm, fill=blue!10},
+    data/.style={draw, align=center, minimum width=2.7cm, minimum height=0.8cm, fill=gray!8},
+    arrow/.style={-{Latex[length=2mm]}, thick}
+]
+\node[server] (server) {Aggregation server\\global LSTM state};
+\node[client, below left=1.4cm and 2.0cm of server] (c1) {Furnace 1 client\\local LSTM training};
+\node[client, below right=1.4cm and 2.0cm of server] (c2) {Furnace 2 client\\local LSTM training};
+\node[data, below=0.7cm of c1] (d1) {Raw time series\\stays local};
+\node[data, below=0.7cm of c2] (d2) {Raw time series\\stays local};
+\draw[arrow] (server) -- node[left, align=center] {download\\$w^t$} (c1);
+\draw[arrow] (server) -- node[right, align=center] {download\\$w^t$} (c2);
+\draw[arrow] (c1) -- node[above left, align=center] {upload\\$w_1^{t+1}$} (server);
+\draw[arrow] (c2) -- node[above right, align=center] {upload\\$w_2^{t+1}$} (server);
+\draw[arrow] (d1) -- (c1);
+\draw[arrow] (d2) -- (c2);
+\end{tikzpicture}
+\caption{Federated training topology. Raw furnace logs remain on the clients; only model states or algorithm-specific update tensors are exchanged with the aggregation server.}
+\label{fig:federated-setup}
+\end{figure}
+
 The client-side training loop is identical in structure across FedAvg, FedProx, and FedBN. At the start of round $t$, every client receives the same global non-personalized weights. Each client then iterates over its local mini-batches, computes the standardized-space MSE loss, clips gradients, and updates local parameters. After local training, the client sends its updated state dictionary to the server. The server performs deterministic weighted averaging using the number of local training windows as the weight. Because both furnaces participate in every round, there is no client-sampling variance in these experiments; the observed variability comes from random initialization and stochastic optimization.
+
+Figure~\ref{fig:round-sequence} gives the round-level sequence. The same four-stage pattern is repeated for 15 rounds in the main Track A runs and 50 rounds in the FL ablation. The 15-round configuration gives a low-communication baseline, while the 50-round ablation tests whether client drift correction methods need more rounds to stabilize.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    scale=0.78,
+    transform shape,
+    node distance=0.8cm,
+    roundstep/.style={draw, rounded corners, align=center, minimum width=3.0cm, minimum height=0.85cm, fill=purple!8},
+    arrow/.style={-{Latex[length=2mm]}, thick}
+]
+\node[roundstep] (s1) {1. Broadcast\\global model};
+\node[roundstep, right=of s1] (s2) {2. Local train\\$E$ epochs};
+\node[roundstep, right=of s2] (s3) {3. Upload\\client states};
+\node[roundstep, right=of s3] (s4) {4. Aggregate\\next global model};
+\draw[arrow] (s1) -- (s2);
+\draw[arrow] (s2) -- (s3);
+\draw[arrow] (s3) -- (s4);
+\draw[arrow] (s4.south) .. controls +(0,-0.8) and +(0,-0.8) .. node[below] {repeat for $T$ rounds} (s1.south);
+\end{tikzpicture}
+\caption{Communication-round sequence used by FedAvg, FedProx, SCAFFOLD, and FedBN. Algorithm variants modify the local loss, transmitted tensors, or aggregation mask, but keep this high-level protocol.}
+\label{fig:round-sequence}
+\end{figure}
 
 FedProx modifies the local objective rather than the aggregation rule. For client $k$, the local loss is
 \begin{equation}
