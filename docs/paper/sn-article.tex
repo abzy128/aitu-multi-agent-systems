@@ -287,7 +287,25 @@ The study also shows why algorithm choice matters. FedAvg is efficient but can w
 
 \section{Conclusion}\label{sec:conclusion}
 
-This paper evaluated federated LSTM training for active-power forecasting on two anonymized submerged arc furnaces. The proposed solution keeps raw operational data local and trains through model-update exchange. The results show that FedProx can match or slightly exceed centralized performance on one client, while the second client remains better served by local-only or centralized training. SCAFFOLD is stable but communication-heavy, and FedBN is a useful negative result. Future work should extend the experiment to multivariate Track B with personalization layers, where furnace-specific sensors can be exploited without forcing all clients into one identical feature schema.
+This paper evaluated whether federated LSTM training can support short-horizon active-power forecasting for submerged arc furnaces when raw operational time series cannot be pooled centrally. The proposed pipeline keeps each furnace's chronological windows, scaler parameters, and raw measurements local, while sharing only model states or algorithm-specific update tensors with an aggregation server. This design directly addresses the confidentiality and ownership constraints that make centralized industrial analytics difficult, while preserving a common evaluation protocol across centralized, local-only, and federated baselines.
+
+The results show that federated learning is feasible in this SAF setting, but its value is client-dependent. FedProx provides the strongest federated outcome: after 50 communication rounds it matches or slightly exceeds the centralized baseline on Furnace 1, suggesting that a proximal penalty can control client drift without requiring raw-data movement. Furnace 2, however, remains better served by centralized or local-only training, which means that a global federated model should not be judged only by average performance. SCAFFOLD becomes stable after longer training but approximately doubles communication traffic, while FedBN performs poorly in this two-client univariate setup and is therefore an informative negative result. Overall, the study supports federated LSTM training as a practical option for SAF forecasting only when accuracy, per-client fairness, and communication cost are evaluated together.
+
+\subsection{Limitations}\label{sec:limitations}
+
+The main limitation is the small federation size. The experiment uses two anonymized furnace clients, so the results describe a realistic but narrow industrial setting rather than the behavior of FL under many clients, partial participation, or highly imbalanced site availability. With only two clients, a single difficult furnace can strongly affect the aggregated model, and it is not possible to estimate how robust the algorithms would be under larger fleet-level heterogeneity.
+
+The study is also limited to Track A univariate active-power forecasting. This choice gives a clean and reproducible comparison because both furnaces share the same target signal, but it excludes potentially useful electrical, thermal, electrode, and cooling-system variables. As a result, the reported performance should be interpreted as a baseline for privacy-preserving collaboration, not as the maximum forecasting accuracy possible from the available sensor system.
+
+Finally, privacy and deployment costs are evaluated at the level of data locality and tensor communication rather than through a full production threat model. The experiments do not add secure aggregation, differential privacy, encrypted transport overhead, client dropout simulation, or wall-clock network measurements. Communication is counted from tensor sizes, which is useful for algorithm comparison but does not capture all operational costs of running FL across industrial sites.
+
+\subsection{Future Work}\label{sec:future-work}
+
+Future work should extend the experiment to multivariate Track B, where furnace-specific sensors can be exploited without forcing all clients into one identical feature schema. A promising direction is a personalized architecture with shared temporal layers and client-specific input adapters or prediction heads. This would allow common active-power dynamics to be learned collaboratively while preserving local specialization for sensors, scales, and operating regimes that differ between furnaces.
+
+The next evaluation should also include more clients, longer time spans, and additional forecast horizons. More furnaces would make it possible to test client sampling, site imbalance, and robustness to clients whose operating regimes change over time. Longer horizons would clarify whether FL is useful only for one-step smoothing or whether it can support operational decisions that require earlier warnings.
+
+Finally, future experiments should include stronger deployment-oriented safeguards. Secure aggregation and differential privacy would make the privacy claim stronger than raw-data locality alone, while compression or sparsification could reduce the communication burden observed for longer FL runs. Online monitoring for per-client error, drift, and fairness should also be added before treating a federated SAF model as an operational decision-support component.
 
 \backmatter
 
