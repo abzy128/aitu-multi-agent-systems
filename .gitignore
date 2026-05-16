@@ -10,3 +10,9 @@ experiments/*/
 
 output/*/
 !output/.gitkeep
+
+# Keep paper figures reproducible while ignoring generated output by default.
+!output/figures/
+output/figures/*
+!output/figures/track_a_r50_seed_pareto.png
+!output/figures/track_a_seed_predictions_seed0.png
